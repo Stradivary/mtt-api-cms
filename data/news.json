@@ -1,0 +1,23 @@
+[
+	{
+		"id": "1",
+		"title": "Next.js 15 Resmi Dirilis",
+		"content": "Versi terbaru dari Next.js membawa banyak peningkatan performa dan fitur App Router.",
+		"image": "https://source.unsplash.com/80x80/?tech,news",
+		"createdAt": "2025-06-29T09:45:00.000Z"
+	},
+	{
+		"id": "2",
+		"title": "Tailwind CSS 4.0 Telah Hadir",
+		"content": "Tailwind CSS 4.0 membawa utilitas baru dan pengoptimalan yang signifikan untuk build time.",
+		"image": "https://source.unsplash.com/80x80/?design,css",
+		"createdAt": "2025-06-28T16:30:00.000Z"
+	},
+	{
+		"id": "3",
+		"title": "Tutorial Lengkap CRUD di Next.js",
+		"content": "Panduan step-by-step membangun aplikasi CRUD berita menggunakan Next.js App Router dan Tailwind CSS.",
+		"image": "https://source.unsplash.com/80x80/?coding,javascript",
+		"createdAt": "2025-06-27T13:15:00.000Z"
+	}
+]
