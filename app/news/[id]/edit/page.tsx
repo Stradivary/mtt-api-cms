@@ -1,16 +1,12 @@
 import EditNewsForm from "@/components/EditNewsForm/EditNewsForm";
 
-interface EditPageProps {
-  params: { id: string };
-}
-
-export default async function EditNewsPage({ params }: EditPageProps) {
-  const { id } = await params;
+export default async function EditNewsPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
 
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-semibold mb-4">Edit Berita</h1>
-      <EditNewsForm id={id} />
+      <EditNewsForm id={params.id} />
     </div>
   );
 }
