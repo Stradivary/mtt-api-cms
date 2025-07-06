@@ -8,6 +8,7 @@ import { useState, useTransition } from 'react';
 import { ImageIcon } from 'lucide-react';
 import TextEditor from '../TextEditor/TextEditor';
 import { toast } from 'sonner';
+import { uploadToSupabase } from '@/lib/uploadToSupabase';
 
 const newsSchema = z.object({
   title: z.string().min(3, 'Judul minimal 3 karakter'),
@@ -44,35 +45,42 @@ export default function NewsForm() {
     }
   };
 
-  const onSubmit = (data: FormData) => {
-    const formData = new FormData();
-    formData.append('title', data.title);
-    formData.append('content', data.content);
-    formData.append('image', data.image[0]);
+  const onSubmit = async (data: FormData) => {
+    try {
+      const imageFile = data.image[0];
+      const supabasePath = await uploadToSupabase(imageFile);
 
-    toast.promise(
-      fetch('/api/news', {
-        method: 'POST',
-        body: formData,
-      }).then((res) => {
-        if (!res.ok) throw new Error('Gagal menambahkan berita');
-      }),
-      {
-        loading: 'Menyimpan berita...',
-        success: () => {
-          startTransition(() => router.push('/news'));
-          return 'Berita berhasil disimpan!';
-        },
-        error: (err) => err.message || 'Terjadi kesalahan saat menyimpan berita.',
-      }
-    );
+      await toast.promise(
+        fetch('/api/news', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: data.title,
+            content: data.content,
+            imagePath: supabasePath,
+          }),
+        }).then((res) => {
+          if (!res.ok) throw new Error('Gagal menyimpan berita');
+        }),
+        {
+          loading: 'Menyimpan berita...',
+          success: () => {
+            startTransition(() => router.push('/news'));
+            return 'Berita berhasil disimpan!';
+          },
+          error: (err) =>
+            err.message || 'Terjadi kesalahan saat menyimpan berita.',
+        }
+      );
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal upload gambar.');
+    }
   };
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-6 bg-white p-6 rounded shadow"
-      encType="multipart/form-data"
     >
       <h1 className="text-xl font-bold">Tambah Berita Baru</h1>
 
@@ -97,7 +105,9 @@ export default function NewsForm() {
           onChange={handleImageChange}
           className="mt-2 block w-full border rounded px-3 py-2 cursor-pointer"
         />
-        {errors.image && <p className="text-sm text-red-500">{String(errors.image.message)}</p>}
+        {errors.image && (
+          <p className="text-sm text-red-500">{String(errors.image.message)}</p>
+        )}
       </div>
 
       <div>
@@ -107,10 +117,11 @@ export default function NewsForm() {
           className="w-full border rounded px-3 py-2"
           placeholder="Judul berita"
         />
-        {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
+        {errors.title && (
+          <p className="text-sm text-red-500">{errors.title.message}</p>
+        )}
       </div>
 
-      {/* Isi Berita */}
       <div>
         <label className="block font-medium mb-1">Isi Berita</label>
         <Controller

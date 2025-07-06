@@ -9,24 +9,40 @@ import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { DataTable } from '../DataTable/DataTable';
 import { toast } from 'sonner';
 import { ModalConfirm } from '@/components/ModalConfirm/ModalConfirm';
+import { getPublicImageUrl } from '@/lib/supabase-url';
 
 type News = {
   id: string;
   title: string;
   content: string;
+  image_path: string;
+  created_at: string;
   image: string;
-  createdAt: string;
 };
 
-export default function HomePage() {
+export default function ListNews() {
   const [data, setData] = useState<News[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [loadingDelete, setLoadingDelete] = useState(false);
 
   const fetchNews = async () => {
-    const res = await fetch('/api/news');
-    const json = await res.json();
-    setData(json);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/news');
+      const json = await res.json();
+
+      const processed = json.map((n: any) => ({
+        ...n,
+        image: getPublicImageUrl(n.image_path),
+      }));
+
+      setData(processed);
+    } catch (err) {
+      toast.error('Gagal mengambil data berita');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -34,8 +50,15 @@ export default function HomePage() {
     setLoadingDelete(true);
     try {
       await toast.promise(
-        fetch(`/api/news/${deleteId}`, { method: 'DELETE' }).then((res) => {
+        fetch(`/api/news/${deleteId}`, {
+          method: 'DELETE',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        }).then((res) => {
           if (!res.ok) throw new Error('Gagal menghapus berita');
+          setData((prev) => prev.filter((item) => item.id !== deleteId));
+          fetchNews();
         }),
         {
           loading: 'Menghapus berita...',
@@ -43,7 +66,7 @@ export default function HomePage() {
           error: 'Gagal menghapus berita.',
         }
       );
-      fetchNews();
+     
     } catch (err) {
       console.error(err);
     } finally {
@@ -80,11 +103,11 @@ export default function HomePage() {
       ),
     },
     {
-      accessorKey: 'createdAt',
+      accessorKey: 'created_at',
       header: 'Tanggal',
       cell: ({ row }) => (
-        <div className='w-[100px]'>
-          {dayjs(row.original.createdAt).format('DD MMM YYYY')}
+        <div className="w-[100px]">
+          {dayjs(row.original.created_at).format('DD MMM YYYY')}
         </div>
       ),
     },
@@ -94,17 +117,17 @@ export default function HomePage() {
       cell: ({ row }) => (
         <div className="flex justify-end gap-2 w-auto">
           <Link href={`/news/${row.original.id}`}>
-            <Button className='cursor-pointer' variant="outline" size="sm">
+            <Button className="cursor-pointer" variant="outline" size="sm">
               <Eye className="w-4 h-4" />
             </Button>
           </Link>
           <Link href={`/news/${row.original.id}/edit`}>
-            <Button className='cursor-pointer' variant="secondary" size="sm">
+            <Button className="cursor-pointer" variant="secondary" size="sm">
               <Pencil className="w-4 h-4" />
             </Button>
           </Link>
           <Button
-            className='cursor-pointer'
+            className="cursor-pointer"
             variant="destructive"
             size="sm"
             onClick={() => setDeleteId(row.original.id)}
@@ -115,7 +138,6 @@ export default function HomePage() {
       ),
     },
   ];
-
 
   return (
     <div>
@@ -131,6 +153,7 @@ export default function HomePage() {
         title="Daftar Berita"
         data={data}
         columns={columns}
+        loading={loading}
       />
     </div>
   );

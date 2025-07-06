@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 import { ImageIcon } from 'lucide-react';
 import TextEditor from '../TextEditor/TextEditor';
 import { toast } from 'sonner';
+import { uploadToSupabase } from '@/lib/uploadToSupabase';
+import { getPublicImageUrl } from '@/lib/supabase-url';
 
 const newsSchema = z.object({
   title: z.string().min(3, 'Judul minimal 3 karakter'),
@@ -20,6 +22,7 @@ type FormData = z.infer<typeof newsSchema>;
 export default function EditNewsForm({ id }: { id: string }) {
   const router = useRouter();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [initialImagePath, setInitialImagePath] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const {
@@ -42,7 +45,8 @@ export default function EditNewsForm({ id }: { id: string }) {
       const data = await res.json();
       setValue('title', data.title);
       setValue('content', data.content);
-      setImagePreview(data.image);
+      setInitialImagePath(data.image_path);
+      setImagePreview(getPublicImageUrl(data.image_path));
     };
 
     fetchNews();
@@ -56,36 +60,46 @@ export default function EditNewsForm({ id }: { id: string }) {
     }
   };
 
-  const onSubmit = (data: FormData) => {
-    const formData = new FormData();
-    formData.append('title', data.title);
-    formData.append('content', data.content);
-    const file = (data.image as FileList)?.[0];
-    if (file) formData.append('image', file);
+  const onSubmit = async (data: FormData) => {
+    try {
+      let imagePath = initialImagePath;
 
-    toast.promise(
-      fetch(`/api/news/${id}`, {
-        method: 'PATCH',
-        body: formData,
-      }).then((res) => {
-        if (!res.ok) throw new Error('Gagal mengupdate berita');
-      }),
-      {
-        loading: 'Menyimpan perubahan...',
-        success: () => {
-          startTransition(() => router.push('/news'));
-          return 'Berita berhasil diperbarui!';
-        },
-        error: (err) => err.message || 'Terjadi kesalahan saat menyimpan perubahan.',
+      const file = (data.image as FileList)?.[0];
+      if (file) {
+        imagePath = await uploadToSupabase(file);
       }
-    );
+
+      await toast.promise(
+        fetch(`/api/news/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: data.title,
+            content: data.content,
+            imagePath,
+          }),
+        }).then((res) => {
+          if (!res.ok) throw new Error('Gagal mengupdate berita');
+        }),
+        {
+          loading: 'Menyimpan perubahan...',
+          success: () => {
+            startTransition(() => router.push('/news'));
+            return 'Berita berhasil diperbarui!';
+          },
+          error: (err) =>
+            err.message || 'Terjadi kesalahan saat menyimpan perubahan.',
+        }
+      );
+    } catch (error: any) {
+      toast.error(error.message || 'Terjadi kesalahan saat menyimpan.');
+    }
   };
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-6 bg-white p-6 rounded shadow"
-      encType="multipart/form-data"
     >
       <h1 className="text-xl font-bold">Edit Berita</h1>
 
@@ -109,7 +123,9 @@ export default function EditNewsForm({ id }: { id: string }) {
           onChange={handleImageChange}
           className="mt-2 block w-full border rounded px-3 py-2"
         />
-        {errors.image && <p className="text-sm text-red-500">{String(errors.image.message)}</p>}
+        {errors.image && (
+          <p className="text-sm text-red-500">{String(errors.image.message)}</p>
+        )}
       </div>
 
       <div>
@@ -119,7 +135,9 @@ export default function EditNewsForm({ id }: { id: string }) {
           className="w-full border rounded px-3 py-2"
           placeholder="Judul berita"
         />
-        {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
+        {errors.title && (
+          <p className="text-sm text-red-500">{errors.title.message}</p>
+        )}
       </div>
 
       <div>
