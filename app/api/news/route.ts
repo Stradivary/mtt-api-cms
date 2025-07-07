@@ -1,5 +1,12 @@
+import { corsHeaders } from '@/lib/cors';
 import { supabaseServer } from '@/lib/supabase-server';
-import { NextResponse } from 'next/server';
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
 
 export async function GET() {
   const { data, error } = await supabaseServer
@@ -8,10 +15,19 @@ export async function GET() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: corsHeaders,
+    });
   }
 
-  return NextResponse.json(data);
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
+  });
 }
 
 export async function POST(req: Request) {
@@ -19,7 +35,10 @@ export async function POST(req: Request) {
   const { title, content, imagePath } = body;
 
   if (!title || !content || !imagePath) {
-    return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 });
+    return new Response(JSON.stringify({ error: 'Data tidak lengkap' }), {
+      status: 400,
+      headers: corsHeaders,
+    });
   }
 
   const { error } = await supabaseServer
@@ -27,8 +46,14 @@ export async function POST(req: Request) {
     .insert([{ title, content, image_path: imagePath }]);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: corsHeaders,
+    });
   }
 
-  return NextResponse.json({ success: true });
+  return new Response(JSON.stringify({ success: true }), {
+    status: 200,
+    headers: corsHeaders,
+  });
 }
