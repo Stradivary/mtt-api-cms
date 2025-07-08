@@ -17,11 +17,11 @@ export default function Sidebar() {
         <h2 className="text-lg font-semibold">MTT CMS</h2>
       </div>
       <nav className="flex flex-col space-y-4 mt-2">
-        <Link href="/" className="hover:text-indigo-300 flex items-center gap-2">
+        <Link href="/dashboard" className="hover:text-indigo-300 flex items-center gap-2">
           <LayoutDashboard className="w-6 h-6" />
           Dashboard
         </Link>
-        <Link href="/news" className="hover:text-indigo-300 flex items-center gap-2">
+        <Link href="/dashboard/news" className="hover:text-indigo-300 flex items-center gap-2">
           <Newspaper className="w-6 h-6" />
           Berita
         </Link>

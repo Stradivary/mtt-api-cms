@@ -8,7 +8,7 @@ export default function DashboardHome() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Berita</h2>
-        <Link href="/news/create">
+        <Link href="/dashboard/news/create">
           <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 cursor-pointer">
             <Plus className="w-4 h-4" />
             Tambah Berita

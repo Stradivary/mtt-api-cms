@@ -1,7 +1,7 @@
-import DashboardLayout from "@/components/DashboardLayout/DashboardLayout";
+// app/layout.tsx
 import "@/styles/globals.css";
 import { Poppins, Italianno } from "next/font/google";
-import { Toaster } from 'sonner';
+import { Toaster } from "sonner";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -20,21 +20,19 @@ export const metadata = {
   description: "MTT API CMS NEWS",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" className={`${poppins.variable} ${italianno.variable} h-screen overflow-hidden`}>
-    <body className="font-poppins h-screen overflow-hidden">
-      <DashboardLayout>{children}</DashboardLayout>
-      <Toaster richColors position="top-center" 
-        toastOptions={{
-          className: "left-[calc(50%+170px)] -translate-x-1/2",
-        }}
-      />
-    </body>
-  </html>
+      <body className="font-poppins h-screen overflow-hidden bg-gray-100">
+        {children}
+        <Toaster
+          richColors
+          position="top-center"
+          toastOptions={{
+            className: "left-[calc(50%+170px)] -translate-x-1/2",
+          }}
+        />
+      </body>
+    </html>
   );
 }

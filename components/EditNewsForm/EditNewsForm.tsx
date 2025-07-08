@@ -84,7 +84,7 @@ export default function EditNewsForm({ id }: { id: string }) {
         {
           loading: 'Menyimpan perubahan...',
           success: () => {
-            startTransition(() => router.push('/news'));
+            startTransition(() => router.push('/dashboard/news'));
             return 'Berita berhasil diperbarui!';
           },
           error: (err) =>

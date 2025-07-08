@@ -116,12 +116,12 @@ export default function ListNews() {
       header: () => <div className="text-right w-auto">Aksi</div>,
       cell: ({ row }) => (
         <div className="flex justify-end gap-2 w-auto">
-          <Link href={`/news/${row.original.id}`}>
+          <Link href={`/dashboard/news/${row.original.id}`}>
             <Button className="cursor-pointer" variant="outline" size="sm">
               <Eye className="w-4 h-4" />
             </Button>
           </Link>
-          <Link href={`/news/${row.original.id}/edit`}>
+          <Link href={`/dashboard/news/${row.original.id}/edit`}>
             <Button className="cursor-pointer" variant="secondary" size="sm">
               <Pencil className="w-4 h-4" />
             </Button>

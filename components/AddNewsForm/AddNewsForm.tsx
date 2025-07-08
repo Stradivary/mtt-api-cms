@@ -65,7 +65,7 @@ export default function NewsForm() {
         {
           loading: 'Menyimpan berita...',
           success: () => {
-            startTransition(() => router.push('/news'));
+            startTransition(() => router.push('/dashboard/news'));
             return 'Berita berhasil disimpan!';
           },
           error: (err) =>
