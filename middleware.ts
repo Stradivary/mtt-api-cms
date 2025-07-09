@@ -2,26 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from './lib/jwt';
 import { parse } from 'cookie';
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const cookieHeader = req.headers.get('cookie') || '';
   const { token } = parse(cookieHeader);
 
   if (pathname === '/login' && token) {
     try {
-      verifyToken(token);
-      return NextResponse.redirect(new URL('/news', req.url));
-    } catch {
-    }
+      await verifyToken(token);
+      return NextResponse.redirect(new URL('/dashboard/news', req.url));
+    } catch {}
   }
 
-  if (pathname.startsWith('/news') || pathname === '/' || pathname === '/dashboard') {
+  const protectedPath = pathname === '/' || pathname.startsWith('/dashboard');
+  if (protectedPath) {
     if (!token) {
       return NextResponse.redirect(new URL('/login', req.url));
     }
 
     try {
-      verifyToken(token);
+      await verifyToken(token);
       return NextResponse.next();
     } catch {
       return NextResponse.redirect(new URL('/login', req.url));
@@ -32,5 +32,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/news/:path*', '/login'],
+  matcher: ['/', '/login', '/dashboard/:path*'],
 };

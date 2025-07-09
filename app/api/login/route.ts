@@ -16,23 +16,27 @@ export async function POST(req: NextRequest) {
   if (error || !user) {
     return NextResponse.json({ error: 'Email atau password salah' }, { status: 401 });
   }
+
   const passwordMatch = await bcrypt.compare(password, user.password);
   if (!passwordMatch) {
     return NextResponse.json({ error: 'Email atau password salah' }, { status: 401 });
   }
 
-  const token = generateToken({ id: user.id, email: user.email });
+  const token = await generateToken({ id: user.id, email: user.email });
 
-  const response = NextResponse.json({ message: 'Login sukses' });
+  const res = new NextResponse(JSON.stringify({ message: 'Login sukses' }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Set-Cookie': serialize('token', token, {
+        httpOnly: true,
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+      }),
+    },
+  });
 
-  response.headers.set(
-    'Set-Cookie',
-    serialize('token', token, {
-      httpOnly: true,
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-    })
-  );
-
-  return response;
+  return res;
 }

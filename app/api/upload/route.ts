@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         contentType: file.type,
         upsert: true,
       });
-
+      
     if (error) {
       console.error('Upload error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
