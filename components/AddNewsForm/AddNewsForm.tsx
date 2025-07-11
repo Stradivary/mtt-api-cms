@@ -4,11 +4,18 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { ImageIcon } from 'lucide-react';
 import TextEditor from '../TextEditor/TextEditor';
 import { toast } from 'sonner';
 import { uploadToSupabase } from '@/lib/uploadToSupabase';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const newsSchema = z.object({
   title: z.string().min(3, 'Judul minimal 3 karakter'),
@@ -18,6 +25,8 @@ const newsSchema = z.object({
     .refine((file) => file instanceof FileList && file.length > 0, {
       message: 'Gambar wajib diunggah',
     }),
+  category_id: z.string().min(1, 'Kategori wajib dipilih'),
+  category_name: z.string().min(1),
 });
 
 type FormData = z.infer<typeof newsSchema>;
@@ -25,16 +34,33 @@ type FormData = z.infer<typeof newsSchema>;
 export default function NewsForm() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    []
+  );
   const router = useRouter();
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
     control,
   } = useForm<FormData>({
     resolver: zodResolver(newsSchema),
   });
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch('/api/category');
+        const data = await res.json();
+        setCategories(data);
+      } catch (err) {
+        toast.error('Gagal mengambil data kategori');
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -58,6 +84,8 @@ export default function NewsForm() {
             title: data.title,
             content: data.content,
             imagePath: supabasePath,
+            category_id: data.category_id,
+            category_name: data.category_name,
           }),
         }).then((res) => {
           if (!res.ok) throw new Error('Gagal menyimpan berita');
@@ -109,7 +137,6 @@ export default function NewsForm() {
           <p className="text-sm text-red-500">{String(errors.image.message)}</p>
         )}
       </div>
-
       <div>
         <label className="block font-medium">Judul</label>
         <input
@@ -121,7 +148,40 @@ export default function NewsForm() {
           <p className="text-sm text-red-500">{errors.title.message}</p>
         )}
       </div>
-
+      <div>
+        <label className="block font-medium mb-1">Kategori</label>
+        <Controller
+          name="category_id"
+          control={control}
+          defaultValue=""
+          render={({ field }) => (
+            <Select
+              value={field.value}
+              onValueChange={(val) => {
+                field.onChange(val);
+                const selected = categories.find((c) => c.id === val);
+                if (selected) {
+                  setValue('category_name', selected.name);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full text-[16px]">
+                <SelectValue placeholder="Pilih kategori" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories?.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.category_id && (
+          <p className="text-sm text-red-500 mt-1">{errors.category_id.message}</p>
+        )}
+      </div>
       <div>
         <label className="block font-medium mb-1">Isi Berita</label>
         <Controller

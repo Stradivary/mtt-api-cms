@@ -4,21 +4,29 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
-import BulletList from '@tiptap/extension-bullet-list';
-import OrderedList from '@tiptap/extension-ordered-list';
-import ListItem from '@tiptap/extension-list-item';
 import { useEffect } from 'react';
+import Image from '@tiptap/extension-image';
+import TextAlign from '@tiptap/extension-text-align';
+
 import {
   Bold,
   Italic,
   Underline as UnderlineIcon,
-  Quote,
   Heading2,
   Undo,
   Redo,
-  Link as LinkIcon,
+  Image as ImageIcon,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify
 } from 'lucide-react';
-
+import { DraggableImage } from '../extentions/DraggableImage/DraggableImage';
+import { getPublicImageUrl } from '@/lib/supabase-url';
+import { toast } from 'sonner';
+import TextStyle from '@tiptap/extension-text-style';
+import FontSize from 'tiptap-extension-font-size';
+import FontSizeSelector from '../FontSizeSelector/FontSizeSelector';
 interface TiptapEditorProps {
   value: string;
   onChange: (html: string) => void;
@@ -31,11 +39,27 @@ export default function TextEditor({ value, onChange }: TiptapEditorProps) {
         bulletList: false,
         orderedList: false,
       }),
-      BulletList,
-      OrderedList,
-      ListItem,
       Underline,
       Link.configure({ openOnClick: false }),
+      DraggableImage,
+      Image.extend({
+        addAttributes() {
+          return {
+            src: {},
+            alt: { default: null },
+            title: { default: null },
+            style: { default: 'max-width:100%; height:auto;' },
+          };
+        },
+        draggable: true,
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      TextStyle,
+      FontSize.configure({
+        types: ['textStyle'],
+      }),
     ],
     content: value || '',
     editorProps: {
@@ -50,6 +74,7 @@ export default function TextEditor({ value, onChange }: TiptapEditorProps) {
     injectCSS: true,
     editable: true,
     immediatelyRender: false,
+
   });
 
   useEffect(() => {
@@ -59,6 +84,59 @@ export default function TextEditor({ value, onChange }: TiptapEditorProps) {
   }, [editor, value]);
 
   if (!editor) return <p className="text-gray-400">Memuat editor...</p>;
+  const handleUploadImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const toastId = toast.loading('Mengunggah gambar...');
+
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          toast.error('Gagal mengunggah gambar', { id: toastId });
+          return;
+        }
+
+        const { path } = await res.json();
+        const publicUrl = getPublicImageUrl(path);
+
+        editor
+          .chain()
+          .focus()
+          .insertContent([
+            {
+              type: 'draggableImage',
+              attrs: {
+                src: publicUrl,
+                alt: '',
+                width: '400px',
+              },
+            },
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: '\u200B' }],
+            },
+          ])
+          .run();
+        toast.success('Gambar berhasil diunggah', { id: toastId });
+      } catch (error) {
+        console.error('Upload error:', error);
+        toast.error('Terjadi kesalahan saat upload', { id: toastId });
+      }
+    };
+    input.click();
+  }
 
   return (
     <div>
@@ -67,18 +145,35 @@ export default function TextEditor({ value, onChange }: TiptapEditorProps) {
         <ToolbarButton icon={<Italic size={16} />} onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')} />
         <ToolbarButton icon={<UnderlineIcon size={16} />} onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive('underline')} />
         <ToolbarButton icon={<Heading2 size={16} />} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive('heading', { level: 2 })} />
-        <ToolbarButton icon={<Quote size={16} />} onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')} />
-        <ToolbarButton icon={<LinkIcon size={16} />} onClick={() => {
-          const url = window.prompt('Masukkan URL');
-          if (url) {
-            editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-          }
-        }} />
         <ToolbarButton icon={<Undo size={16} />} onClick={() => editor.chain().focus().undo().run()} />
         <ToolbarButton icon={<Redo size={16} />} onClick={() => editor.chain().focus().redo().run()} />
+        <FontSizeSelector editor={editor} />
+        <ToolbarButton
+          icon={<AlignLeft size={16} />}
+          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+          active={editor.isActive({ textAlign: 'left' })}
+        />
+        <ToolbarButton
+          icon={<AlignCenter size={16} />}
+          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+          active={editor.isActive({ textAlign: 'center' })}
+        />
+        <ToolbarButton
+          icon={<AlignRight size={16} />}
+          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+          active={editor.isActive({ textAlign: 'right' })}
+        />
+        <ToolbarButton
+          icon={<AlignJustify size={16} />}
+          onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+          active={editor.isActive({ textAlign: 'justify' })}
+        />
+        <ToolbarButton
+          icon={<ImageIcon size={16} />}
+          onClick={handleUploadImage}
+        />
       </div>
-
-      <div className="border rounded min-h-[200px] p-3 bg-white">
+      <div className="border rounded min-h-[300px] p-3 bg-white relative">
         <EditorContent editor={editor} />
       </div>
     </div>

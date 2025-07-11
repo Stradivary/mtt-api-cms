@@ -52,10 +52,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'ID tidak ditemukan di URL' }, { status: 400 });
   }
 
-  const { error } = await supabaseServer
-    .from('news')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabaseServer.from('news').delete().eq('id', id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -77,25 +74,24 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Data tidak valid (bukan JSON)' }, { status: 400 });
   }
 
-  const { title, content, imagePath } = body;
+  const { title, content, imagePath, category_id, category_name } = body;
 
-  if (!title || !content) {
-    return NextResponse.json({ error: 'Judul dan isi berita wajib diisi' }, { status: 400 });
+  if (!title || !content || !category_id || !category_name) {
+    return NextResponse.json({ error: 'Semua field wajib diisi' }, { status: 400 });
   }
 
   const updatePayload: Record<string, any> = {
     title,
     content,
+    category_id,
+    category_name,
   };
 
   if (imagePath) {
     updatePayload.image_path = imagePath;
   }
 
-  const { error } = await supabaseServer
-    .from('news')
-    .update(updatePayload)
-    .eq('id', id);
+  const { error } = await supabaseServer.from('news').update(updatePayload).eq('id', id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

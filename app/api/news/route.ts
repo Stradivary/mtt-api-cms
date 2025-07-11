@@ -32,18 +32,24 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { title, content, imagePath } = body;
+  const { title, content, imagePath, category_id, category_name } = body;
 
-  if (!title || !content || !imagePath) {
+  if (!title || !content || !imagePath || !category_id || !category_name) {
     return new Response(JSON.stringify({ error: 'Data tidak lengkap' }), {
       status: 400,
       headers: corsHeaders,
     });
   }
 
-  const { error } = await supabaseServer
-    .from('news')
-    .insert([{ title, content, image_path: imagePath }]);
+  const { error } = await supabaseServer.from('news').insert([
+    {
+      title,
+      content,
+      image_path: imagePath,
+      category_id,
+      category_name,
+    },
+  ]);
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {

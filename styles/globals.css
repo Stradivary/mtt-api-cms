@@ -127,3 +127,17 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem 0;
+  resize: both;
+  overflow: auto;
+  cursor: move;
+}
+
+.draggable-image-node {
+  margin: 1rem 0;
+}

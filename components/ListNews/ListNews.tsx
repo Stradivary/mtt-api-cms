@@ -16,6 +16,8 @@ type News = {
   title: string;
   content: string;
   image_path: string;
+  category_id: string;
+  category_name: string;
   created_at: string;
   image: string;
 };
@@ -66,7 +68,6 @@ export default function ListNews() {
           error: 'Gagal menghapus berita.',
         }
       );
-     
     } catch (err) {
       console.error(err);
     } finally {
@@ -84,9 +85,7 @@ export default function ListNews() {
       accessorKey: 'title',
       header: 'Judul',
       cell: ({ getValue }) => (
-        <div className="line-clamp-2 max-w-auto">
-          {getValue() as string}
-        </div>
+        <div className="line-clamp-2 max-w-auto">{getValue() as string}</div>
       ),
     },
     {
@@ -101,6 +100,11 @@ export default function ListNews() {
           />
         </div>
       ),
+    },
+    {
+      accessorKey: 'category_name',
+      header: 'Kategori',
+      cell: ({ getValue }) => <div>{getValue() as string}</div>,
     },
     {
       accessorKey: 'created_at',
