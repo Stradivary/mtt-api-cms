@@ -1,20 +1,15 @@
-import { NodeViewWrapper } from '@tiptap/react';
+import { NodeViewWrapper, ReactNodeViewProps } from '@tiptap/react';
 
 export default function DraggableImageComponent({
   node,
   updateAttributes,
-}: {
-  node: {
-    attrs: {
-      src: string;
-      alt?: string;
-      width?: string;
-      height?: string;
-    };
+}: ReactNodeViewProps) {
+  const { src, alt, width = 'auto', height = 'auto' } = node.attrs as {
+    src: string;
+    alt?: string;
+    width?: string;
+    height?: string;
   };
-  updateAttributes: (attrs: Record<string, string>) => void;
-}) {
-  const { src, alt, width = 'auto', height = 'auto' } = node.attrs;
 
   return (
     <NodeViewWrapper
@@ -27,11 +22,14 @@ export default function DraggableImageComponent({
           resize: 'both',
           overflow: 'auto',
           display: 'block',
-          width: width,
-          height: height,
+          width,
+          height,
           maxWidth: '100%',
+          minWidth: '100px',
+          minHeight: '100px',
           border: '1px dashed #ddd',
           boxSizing: 'border-box',
+          background: '#fff',
         }}
         onMouseUp={(e) => {
           const target = e.currentTarget as HTMLDivElement;
@@ -50,6 +48,7 @@ export default function DraggableImageComponent({
             height: '100%',
             objectFit: 'cover',
             display: 'block',
+            pointerEvents: 'none',
           }}
         />
       </div>

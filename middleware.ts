@@ -7,15 +7,16 @@ export async function middleware(req: NextRequest) {
   const cookieHeader = req.headers.get('cookie') || '';
   const { token } = parse(cookieHeader);
 
+  const isProtected = pathname === '/' || pathname.startsWith('/dashboard');
+
   if (pathname === '/login' && token) {
     try {
       await verifyToken(token);
       return NextResponse.redirect(new URL('/dashboard/news', req.url));
-    } catch {}
+    } catch (err) {}
   }
 
-  const protectedPath = pathname === '/' || pathname.startsWith('/dashboard');
-  if (protectedPath) {
+  if (isProtected) {
     if (!token) {
       return NextResponse.redirect(new URL('/login', req.url));
     }
@@ -23,7 +24,7 @@ export async function middleware(req: NextRequest) {
     try {
       await verifyToken(token);
       return NextResponse.next();
-    } catch {
+    } catch (err) {
       return NextResponse.redirect(new URL('/login', req.url));
     }
   }
