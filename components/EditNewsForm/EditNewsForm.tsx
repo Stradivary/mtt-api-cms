@@ -10,6 +10,7 @@ import TextEditor from '../TextEditor/TextEditor';
 import { toast } from 'sonner';
 import { uploadToSupabase } from '@/lib/uploadToSupabase';
 import { getPublicImageUrl } from '@/lib/supabase-url';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ export default function EditNewsForm({ id }: { id: string }) {
   const [initialImagePath, setInitialImagePath] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const {
     register,
@@ -45,7 +47,6 @@ export default function EditNewsForm({ id }: { id: string }) {
     resolver: zodResolver(newsSchema),
   });
 
-  // Fetch kategori
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -62,18 +63,22 @@ export default function EditNewsForm({ id }: { id: string }) {
 
   useEffect(() => {
     const fetchNews = async () => {
-      const res = await fetch(`/api/news/${id}`);
-      if (!res.ok) {
+      try {
+        const res = await fetch(`/api/news/${id}`);
+        if (!res.ok) throw new Error();
+
+        const data = await res.json();
+        setValue('title', data.title);
+        setValue('content', data.content);
+        setValue('category_id', data.category_id);
+        setValue('category_name', data.category_name);
+        setInitialImagePath(data.image_path);
+        setImagePreview(getPublicImageUrl(data.image_path));
+      } catch {
         toast.error('Gagal mengambil data berita');
-        return;
+      } finally {
+        setIsLoading(false);
       }
-      const data = await res.json();
-      setValue('title', data.title);
-      setValue('content', data.content);
-      setValue('category_id', data.category_id);
-      setValue('category_name', data.category_name);
-      setInitialImagePath(data.image_path);
-      setImagePreview(getPublicImageUrl(data.image_path));
     };
 
     fetchNews();
@@ -81,10 +86,17 @@ export default function EditNewsForm({ id }: { id: string }) {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
+
+    if (!file) return;
+
+    const MAX_SIZE = 200 * 1024;
+    if (file.size > MAX_SIZE) {
+      toast.error('Ukuran gambar maksimal 200KB');
+      return;
     }
+
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
   };
 
   const onSubmit = async (data: FormData) => {
@@ -125,6 +137,24 @@ export default function EditNewsForm({ id }: { id: string }) {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded shadow space-y-6">
+        <Skeleton className="h-6 w-1/3" />
+        <Skeleton className="h-60 w-full rounded" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-60 w-full rounded" />
+        <div className="flex justify-end">
+          <Skeleton className="h-10 w-36" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
@@ -132,7 +162,6 @@ export default function EditNewsForm({ id }: { id: string }) {
     >
       <h1 className="text-xl font-bold">Edit Berita</h1>
 
-      {/* Upload Gambar */}
       <div>
         <label className="block font-medium mb-1">Upload Gambar</label>
         <div className="border rounded p-4 bg-gray-50 flex items-center justify-center h-60">
@@ -157,6 +186,7 @@ export default function EditNewsForm({ id }: { id: string }) {
           <p className="text-sm text-red-500">{String(errors.image.message)}</p>
         )}
       </div>
+
       <div>
         <label className="block font-medium">Judul</label>
         <input
@@ -169,7 +199,6 @@ export default function EditNewsForm({ id }: { id: string }) {
         )}
       </div>
 
-      {/* Kategori */}
       <div>
         <label className="block font-medium mb-1">Kategori</label>
         <Controller
@@ -201,9 +230,12 @@ export default function EditNewsForm({ id }: { id: string }) {
           )}
         />
         {errors.category_id && (
-          <p className="text-sm text-red-500 mt-1">{errors.category_id.message}</p>
+          <p className="text-sm text-red-500 mt-1">
+            {errors.category_id.message}
+          </p>
         )}
       </div>
+
       <div>
         <label className="block font-medium mb-1">Isi Berita</label>
         <Controller
@@ -218,6 +250,7 @@ export default function EditNewsForm({ id }: { id: string }) {
           <p className="text-sm text-red-500 mt-1">{errors.content.message}</p>
         )}
       </div>
+
       <div className="flex justify-end">
         <button
           type="submit"

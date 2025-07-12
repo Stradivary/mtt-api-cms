@@ -88,9 +88,16 @@ export default function TextEditor({ value, onChange }: TiptapEditorProps) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
+
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
+
+      const MAX_SIZE = 200 * 1024;
+      if (file.size > MAX_SIZE) {
+        toast.error('Ukuran gambar maksimal 200KB');
+        return;
+      }
 
       const formData = new FormData();
       formData.append('file', file);
@@ -129,14 +136,17 @@ export default function TextEditor({ value, onChange }: TiptapEditorProps) {
             },
           ])
           .run();
+
         toast.success('Gambar berhasil diunggah', { id: toastId });
       } catch (error) {
         console.error('Upload error:', error);
         toast.error('Terjadi kesalahan saat upload', { id: toastId });
       }
     };
+
     input.click();
-  }
+  };
+
 
   return (
     <div>
