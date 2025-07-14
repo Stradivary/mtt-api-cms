@@ -4,7 +4,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from '@tiptap/extension-image';
 import TextAlign from '@tiptap/extension-text-align';
 
@@ -22,10 +22,9 @@ import {
   AlignJustify
 } from 'lucide-react';
 import { DraggableImage } from '../extentions/DraggableImage/DraggableImage';
-import { getPublicImageUrl } from '@/lib/supabase-url';
-import { toast } from 'sonner';
 import TextStyle from '@tiptap/extension-text-style';
 import FontSize from 'tiptap-extension-font-size';
+import ImageGalleryModal from '../ImageGalleryModal/ImageGalleryModal';
 import FontSizeSelector from '../FontSizeSelector/FontSizeSelector';
 interface TiptapEditorProps {
   value: string;
@@ -33,6 +32,7 @@ interface TiptapEditorProps {
 }
 
 export default function TextEditor({ value, onChange }: TiptapEditorProps) {
+  const [showImageModal, setShowImageModal] = useState(false);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -84,72 +84,36 @@ export default function TextEditor({ value, onChange }: TiptapEditorProps) {
   }, [editor, value]);
 
   if (!editor) return <p className="text-gray-400">Memuat editor...</p>;
-  const handleUploadImage = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
 
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-
-      const MAX_SIZE = 200 * 1024;
-      if (file.size > MAX_SIZE) {
-        toast.error('Ukuran gambar maksimal 200KB');
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const toastId = toast.loading('Mengunggah gambar...');
-
-      try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!res.ok) {
-          toast.error('Gagal mengunggah gambar', { id: toastId });
-          return;
-        }
-
-        const { path } = await res.json();
-        const publicUrl = getPublicImageUrl(path);
-
-        editor
-          .chain()
-          .focus()
-          .insertContent([
-            {
-              type: 'draggableImage',
-              attrs: {
-                src: publicUrl,
-                alt: '',
-                width: '400px',
-              },
-            },
-            {
-              type: 'paragraph',
-              content: [{ type: 'text', text: '\u200B' }],
-            },
-          ])
-          .run();
-
-        toast.success('Gambar berhasil diunggah', { id: toastId });
-      } catch (error) {
-        console.error('Upload error:', error);
-        toast.error('Terjadi kesalahan saat upload', { id: toastId });
-      }
-    };
-
-    input.click();
+  const handleImageSelect = (url: string) => {
+    editor
+      .chain()
+      .focus()
+      .insertContent([
+        {
+          type: 'draggableImage',
+          attrs: {
+            src: url,
+            alt: '',
+            width: '400px',
+          },
+        },
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: '\u200B' }],
+        },
+      ])
+      .run();
   };
 
 
   return (
     <div>
+      <ImageGalleryModal
+        open={showImageModal}
+        onClose={() => setShowImageModal(false)}
+        onSelectImage={handleImageSelect}
+      />
       <div className="flex flex-wrap gap-2 mb-2 border p-2 rounded bg-gray-50">
         <ToolbarButton icon={<Bold size={16} />} onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')} />
         <ToolbarButton icon={<Italic size={16} />} onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')} />
@@ -180,7 +144,7 @@ export default function TextEditor({ value, onChange }: TiptapEditorProps) {
         />
         <ToolbarButton
           icon={<ImageIcon size={16} />}
-          onClick={handleUploadImage}
+          onClick={() => setShowImageModal(true)}
         />
       </div>
       <div className="border rounded min-h-[300px] p-3 bg-white relative">
