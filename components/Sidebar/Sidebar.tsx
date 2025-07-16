@@ -25,6 +25,10 @@ export default function Sidebar() {
           <Newspaper className="w-6 h-6" />
           Berita
         </Link>
+        <Link href="/dashboard/daily-dakwah" className="hover:text-indigo-300 flex items-center gap-2">
+          <Newspaper className="w-6 h-6" />
+          Dakwah Harian
+        </Link>
       </nav>
     </aside>
   );
