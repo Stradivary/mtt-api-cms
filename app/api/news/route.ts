@@ -1,5 +1,6 @@
 import { corsHeaders } from '@/lib/cors';
 import { supabaseServer } from '@/lib/supabase-server';
+import { NextRequest } from 'next/server';
 
 export async function OPTIONS() {
   return new Response(null, {
@@ -8,11 +9,29 @@ export async function OPTIONS() {
   });
 }
 
-export async function GET() {
-  const { data, error } = await supabaseServer
+function isUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
+export async function GET(req: NextRequest) {
+  const searchParams = req.nextUrl.searchParams;
+  const category = searchParams.get('category');
+
+  let query = supabaseServer
     .from('news')
     .select('*')
     .order('created_at', { ascending: false });
+
+  if (category) {
+    if (isUUID(category)) {
+      query = query.eq('category_id', category);
+    } else {
+      query = query.eq('category_name', category);
+    }
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
