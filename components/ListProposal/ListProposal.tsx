@@ -75,9 +75,10 @@ export default function ListProposal() {
     }
   };
 
-  const handlePreview = (url: string) => {
+  const handlePreview = (url: string, id:string) => {
     setPreviewUrl(url);
     setPreviewOpen(true);
+    markAsRead(id);
   };
 
   const handleDownload = async (url: string, filename: string, id: string, isRead: boolean) => {
@@ -156,7 +157,7 @@ export default function ListProposal() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => handlePreview(proposal.file_url)}
+              onClick={() => handlePreview(proposal.file_url, proposal.id)}
               disabled={disabled}
             >
               <Eye className="w-4 h-4" />
