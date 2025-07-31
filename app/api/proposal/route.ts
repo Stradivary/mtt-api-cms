@@ -3,9 +3,12 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { z } from 'zod';
 
 const proposalSchema = z.object({
-  name: z.string().min(2),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email(),
-  phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/),
+  phoneNumber: z
+  .string()
+  .regex(/^\d+$/, 'Phone number must be numbers only')
+  .max(14, 'Phone number must be at most 14 digits'),
   fileUrl: z.string().url(),
 });
 
@@ -74,18 +77,11 @@ export async function POST(req: Request) {
 
   const { name, email, phoneNumber, fileUrl } = result.data;
 
-  const { data: existingProposal, error: checkError } = await supabaseServer
+  const { data: existingProposal } = await supabaseServer
     .from('proposals')
     .select('id')
     .eq('email', email)
     .single();
-
-  if (checkError && checkError.code !== 'PGRST116') {
-    return new Response(JSON.stringify({ error: checkError.message }), {
-      status: 500,
-      headers: corsHeaders,
-    });
-  }
 
   if (existingProposal) {
     return new Response(JSON.stringify({ error: 'Proposal dengan email ini sudah ada' }), {

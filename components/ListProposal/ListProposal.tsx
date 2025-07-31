@@ -13,8 +13,9 @@ import {
 } from '@/components/ui/select';
 import { DataTable } from '../DataTable/DataTable';
 import { toast } from 'sonner';
-import { Download } from 'lucide-react';
+import { Download, Eye } from 'lucide-react';
 import dayjs from 'dayjs';
+import { PdfPreview } from '../FdfPreview/PdfPreview';
 
 type Proposal = {
   id: string;
@@ -33,6 +34,9 @@ export default function ListProposal() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'read' | 'unread'>('all');
   const [isDownloaded, setIsDownloaded] = useState<boolean>(false);
+  const [isPreviewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
+
   const fetchProposals = async () => {
     setLoading(true);
     try {
@@ -64,11 +68,16 @@ export default function ListProposal() {
       });
       setIsDownloaded(false);
       fetchProposals();
-      
+
     } catch {
       toast.error('Gagal update status dibaca');
       setIsDownloaded(false);
     }
+  };
+
+  const handlePreview = (url: string) => {
+    setPreviewUrl(url);
+    setPreviewOpen(true);
   };
 
   const handleDownload = async (url: string, filename: string, id: string, isRead: boolean) => {
@@ -146,6 +155,14 @@ export default function ListProposal() {
           <div className="flex justify-end">
             <Button
               variant="outline"
+              size="icon"
+              onClick={() => handlePreview(proposal.file_url)}
+              disabled={disabled}
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
               size="sm"
               className="cursor-pointer"
               disabled={isDownloaded || disabled}
@@ -167,45 +184,52 @@ export default function ListProposal() {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 justify-between">
-        <Input
-          placeholder="Cari nama atau email..."
-          className="max-w-xs"
-          value={searchQuery}
-          onChange={(e) => {
-            const value = e.target.value;
-            setSearchQuery(value);
-            if (value.length > 3) {
-              setSearch(value);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              setSearch(searchQuery);
-            }
-          }}
-        />
-        <Select
-          value={statusFilter}
-          onValueChange={(val) => setStatusFilter(val as any)}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua</SelectItem>
-            <SelectItem value="read">Sudah Dibaca</SelectItem>
-            <SelectItem value="unread">Belum Dibaca</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <DataTable
-        title="Daftar Proposal Masuk"
-        data={data}
-        columns={columns}
-        loading={loading}
+    <>
+      <PdfPreview
+        isOpen={isPreviewOpen}
+        onClose={() => setPreviewOpen(false)}
+        fileUrl={previewUrl}
       />
-    </div>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 justify-between">
+          <Input
+            placeholder="Cari nama atau email..."
+            className="max-w-xs"
+            value={searchQuery}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSearchQuery(value);
+              if (value.length > 3) {
+                setSearch(value);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                setSearch(searchQuery);
+              }
+            }}
+          />
+          <Select
+            value={statusFilter}
+            onValueChange={(val) => setStatusFilter(val as any)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua</SelectItem>
+              <SelectItem value="read">Sudah Dibaca</SelectItem>
+              <SelectItem value="unread">Belum Dibaca</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <DataTable
+          title="Daftar Proposal Masuk"
+          data={data}
+          columns={columns}
+          loading={loading}
+        />
+      </div>
+    </>
   );
 }
