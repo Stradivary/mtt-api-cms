@@ -21,10 +21,15 @@ export default function Sidebar() {
           <LayoutDashboard className="w-6 h-6" />
           Dashboard
         </Link>
+        <Link href="/dashboard/home-sliders" className="hover:text-indigo-300 flex items-center gap-2">
+          <Newspaper className="w-6 h-6" />
+          Slider Beranda
+        </Link>
         <Link href="/dashboard/news" className="hover:text-indigo-300 flex items-center gap-2">
           <Newspaper className="w-6 h-6" />
           Berita
         </Link>
+       
         <Link href="/dashboard/daily-dakwah" className="hover:text-indigo-300 flex items-center gap-2">
           <Newspaper className="w-6 h-6" />
           Dakwah Harian
