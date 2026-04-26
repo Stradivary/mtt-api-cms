@@ -42,6 +42,10 @@ export default function Sidebar() {
           <Newspaper className="w-6 h-6" />
           Zakat
         </Link>
+        <Link href="/dashboard/pendaftaran-qurban" className="hover:text-indigo-300 flex items-center gap-2">
+          <Newspaper className="w-6 h-6" />
+          Pendaftaran Kurban 1447H
+        </Link>
       </nav>
     </aside>
   );
