@@ -2,7 +2,7 @@ import { corsHeaders } from '@/lib/cors';
 import { supabaseServer } from '@/lib/supabase-server';
 import { pendaftaranQurbanSchema } from '@/app/schemas/pendaftaranQurbanSchema';
 
-const TABLE_NAME = 'pendaftaran_kurban_1447h';
+const TABLE_NAME = 'qurban_registration_1447h';
 
 export async function OPTIONS() {
 	return new Response(null, {
@@ -49,7 +49,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
 	try {
+		console.log('[qurban/pendaftaran] POST request started');
 		const contentType = req.headers.get('content-type') || '';
+		console.log('[qurban/pendaftaran] content-type:', contentType);
 
 		let payload: {
 			nama: string;
@@ -86,13 +88,16 @@ export async function POST(req: Request) {
 				atasNama: String(body?.atasNama || ''),
 				tujuanQurban: String(body?.tujuanQurban || ''),
 				lembaga: String(body?.lembaga || ''),
-				buktiBayar: body?.buktiBayar || null,
+				buktiBayar: body?.buktiBayarUrl || null,
 			};
 		}
+
+		console.log('[qurban/pendaftaran] payload parsed:', payload);
 
 		const result = pendaftaranQurbanSchema.safeParse(payload);
 
 		if (!result.success) {
+			console.error('[qurban/pendaftaran] validation failed:', result.error.format());
 			return new Response(
 				JSON.stringify({ error: 'Data tidak valid', issues: result.error.format() }),
 				{
@@ -102,29 +107,74 @@ export async function POST(req: Request) {
 			);
 		}
 
+		console.log('[qurban/pendaftaran] validation success');
+
 		const { nama, hp, hewan, qty, atasNama, tujuanQurban, lembaga, buktiBayar } = result.data;
 
 		const buktiBayarUrl = typeof buktiBayar === 'string' ? buktiBayar : null;
 
-		const { error } = await supabaseServer.from(TABLE_NAME).insert([
-			{
-				nama,
-				hp,
-				hewan,
-				qty: Number(qty),
-				atas_nama: atasNama,
-				tujuan_qurban: tujuanQurban,
-				lembaga,
-				bukti_bayar_url: buktiBayarUrl,
-			},
-		]);
+		console.log('[qurban/pendaftaran] inserting to database:', {
+			nama,
+			hp,
+			hewan,
+			qty: Number(qty),
+			atas_nama: atasNama,
+			tujuan_qurban: tujuanQurban,
+			lembaga,
+			bukti_bayar_url: buktiBayarUrl,
+		});
+
+		let insertResult;
+		try {
+			insertResult = await supabaseServer.from(TABLE_NAME).insert([
+				{
+					nama,
+					hp,
+					hewan,
+					qty: Number(qty),
+					atas_nama: atasNama,
+					tujuan_qurban: tujuanQurban,
+					lembaga,
+					bukti_bayar_url: buktiBayarUrl,
+				},
+			]);
+			console.log('[qurban/pendaftaran] insert result:', {
+				status: insertResult.status,
+				statusText: insertResult.statusText,
+				hasData: !!insertResult.data,
+				hasError: !!insertResult.error,
+				error: insertResult.error,
+				data: insertResult.data,
+				fullResponse: JSON.stringify(insertResult),
+			});
+		} catch (dbErr: any) {
+			console.error('[qurban/pendaftaran] insert catch error:', {
+				message: dbErr?.message,
+				code: dbErr?.code,
+				details: dbErr?.details,
+				stack: dbErr?.stack,
+			});
+			throw dbErr;
+		}
+
+		const { data, error } = insertResult;
 
 		if (error) {
-			return new Response(JSON.stringify({ error: error.message }), {
+			console.error('[qurban/pendaftaran] database insert error:', {
+				message: error.message,
+				code: error.code,
+				details: error.details,
+				hint: error.hint,
+				fullError: JSON.stringify(error),
+				errorString: error.toString(),
+			});
+			return new Response(JSON.stringify({ error: error.message || 'Database error' }), {
 				status: 500,
 				headers: corsHeaders,
 			});
 		}
+
+		console.log('[qurban/pendaftaran] insert success');
 
 		return new Response(JSON.stringify({ success: true }), {
 			status: 200,
@@ -133,7 +183,12 @@ export async function POST(req: Request) {
 				'Content-Type': 'application/json',
 			},
 		});
-	} catch {
+	} catch (err: any) {
+		console.error('[qurban/pendaftaran] unexpected error:', {
+			message: err?.message,
+			name: err?.name,
+			stack: err?.stack,
+		});
 		return new Response(JSON.stringify({ error: 'Invalid request body' }), {
 			status: 400,
 			headers: corsHeaders,
