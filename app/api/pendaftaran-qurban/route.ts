@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 
 	if (search) {
 		query = query.or(
-			`nama.ilike.%${search}%,hp.ilike.%${search}%,atas_nama.ilike.%${search}%,tujuan_qurban.ilike.%${search}%`
+			`nama.ilike.%${search}%,email.ilike.%${search}%,hp.ilike.%${search}%,tujuan_qurban.ilike.%${search}%,lembaga.ilike.%${search}%`
 		);
 	}
 
@@ -49,146 +49,185 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
 	try {
-		console.log('[qurban/pendaftaran] POST request started');
 		const contentType = req.headers.get('content-type') || '';
-		console.log('[qurban/pendaftaran] content-type:', contentType);
 
 		let payload: {
 			nama: string;
+			email: string;
 			hp: string;
-			hewan: string;
-			qty: string;
-			atasNama: string;
+			qurbanItems: Array<{
+				hewan: string;
+				qty: string;
+				atasNama: string;
+				atasNamaList: string[];
+			}>;
 			tujuanQurban: string;
 			lembaga: string;
-			buktiBayar?: string | null;
+			buktiBayarUrl?: string | null;
 		};
 
 		if (contentType.includes('multipart/form-data')) {
 			const formData = await req.formData();
-			const buktiBayar = formData.get('buktiBayar');
+			const buktiBayarUrl = formData.get('buktiBayarUrl');
+			const qurbanItemsStr = formData.get('qurbanItems');
+
+			let qurbanItems = [];
+			if (qurbanItemsStr) {
+				try {
+					qurbanItems = JSON.parse(String(qurbanItemsStr));
+				} catch (e) {
+					qurbanItems = [];
+				}
+			}
 
 			payload = {
 				nama: String(formData.get('nama') || ''),
+				email: String(formData.get('email') || ''),
 				hp: String(formData.get('hp') || ''),
-				hewan: String(formData.get('hewan') || ''),
-				qty: String(formData.get('qty') || ''),
-				atasNama: String(formData.get('atasNama') || ''),
+				qurbanItems,
 				tujuanQurban: String(formData.get('tujuanQurban') || ''),
 				lembaga: String(formData.get('lembaga') || ''),
-				buktiBayar: typeof buktiBayar === 'string' ? buktiBayar : null,
+				buktiBayarUrl: typeof buktiBayarUrl === 'string' ? buktiBayarUrl : null,
 			};
 		} else {
 			const body = await req.json();
 			payload = {
 				nama: String(body?.nama || ''),
+				email: String(body?.email || ''),
 				hp: String(body?.hp || ''),
-				hewan: String(body?.hewan || ''),
-				qty: String(body?.qty || ''),
-				atasNama: String(body?.atasNama || ''),
+				qurbanItems: Array.isArray(body?.qurbanItems) ? body.qurbanItems : [],
 				tujuanQurban: String(body?.tujuanQurban || ''),
 				lembaga: String(body?.lembaga || ''),
-				buktiBayar: body?.buktiBayarUrl || null,
+				buktiBayarUrl: body?.buktiBayarUrl || null,
 			};
 		}
-
-		console.log('[qurban/pendaftaran] payload parsed:', payload);
 
 		const result = pendaftaranQurbanSchema.safeParse(payload);
 
 		if (!result.success) {
-			console.error('[qurban/pendaftaran] validation failed:', result.error.format());
 			return new Response(
 				JSON.stringify({ error: 'Data tidak valid', issues: result.error.format() }),
-				{
-					status: 400,
-					headers: corsHeaders,
-				}
+				{ status: 400, headers: corsHeaders }
 			);
 		}
 
-		console.log('[qurban/pendaftaran] validation success');
+		const { nama, email, hp, qurbanItems, tujuanQurban, lembaga, buktiBayarUrl } = result.data;
 
-		const { nama, hp, hewan, qty, atasNama, tujuanQurban, lembaga, buktiBayar } = result.data;
+		const buktiBayarUrlStr = typeof buktiBayarUrl === 'string' ? buktiBayarUrl : null;
 
-		const buktiBayarUrl = typeof buktiBayar === 'string' ? buktiBayar : null;
-
-		console.log('[qurban/pendaftaran] inserting to database:', {
+		const insertData = {
 			nama,
+			email,
 			hp,
-			hewan,
-			qty: Number(qty),
-			atas_nama: atasNama,
+			qurban_items: qurbanItems,
 			tujuan_qurban: tujuanQurban,
 			lembaga,
-			bukti_bayar_url: buktiBayarUrl,
-		});
+			bukti_bayar_url: buktiBayarUrlStr,
+		};
 
-		let insertResult;
-		try {
-			insertResult = await supabaseServer.from(TABLE_NAME).insert([
-				{
-					nama,
-					hp,
-					hewan,
-					qty: Number(qty),
-					atas_nama: atasNama,
-					tujuan_qurban: tujuanQurban,
-					lembaga,
-					bukti_bayar_url: buktiBayarUrl,
-				},
-			]);
-			console.log('[qurban/pendaftaran] insert result:', {
-				status: insertResult.status,
-				statusText: insertResult.statusText,
-				hasData: !!insertResult.data,
-				hasError: !!insertResult.error,
-				error: insertResult.error,
-				data: insertResult.data,
-				fullResponse: JSON.stringify(insertResult),
-			});
-		} catch (dbErr: any) {
-			console.error('[qurban/pendaftaran] insert catch error:', {
-				message: dbErr?.message,
-				code: dbErr?.code,
-				details: dbErr?.details,
-				stack: dbErr?.stack,
-			});
-			throw dbErr;
-		}
-
-		const { data, error } = insertResult;
+		const { error } = await supabaseServer.from(TABLE_NAME).insert([insertData]);
 
 		if (error) {
-			console.error('[qurban/pendaftaran] database insert error:', {
-				message: error.message,
-				code: error.code,
-				details: error.details,
-				hint: error.hint,
-				fullError: JSON.stringify(error),
-				errorString: error.toString(),
-			});
 			return new Response(JSON.stringify({ error: error.message || 'Database error' }), {
 				status: 500,
 				headers: corsHeaders,
 			});
 		}
 
-		console.log('[qurban/pendaftaran] insert success');
-
 		return new Response(JSON.stringify({ success: true }), {
 			status: 200,
-			headers: {
-				...corsHeaders,
-				'Content-Type': 'application/json',
-			},
+			headers: { ...corsHeaders, 'Content-Type': 'application/json' },
 		});
 	} catch (err: any) {
-		console.error('[qurban/pendaftaran] unexpected error:', {
-			message: err?.message,
-			name: err?.name,
-			stack: err?.stack,
+		return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+			status: 400,
+			headers: corsHeaders,
 		});
+	}
+}
+
+export async function PATCH(req: Request) {
+	try {
+		const { searchParams } = new URL(req.url);
+		const id = searchParams.get('id');
+
+		if (!id) {
+			return new Response(
+				JSON.stringify({ error: 'ID tidak ditemukan dalam query parameter' }),
+				{ status: 400, headers: corsHeaders }
+			);
+		}
+
+		const body = await req.json();
+
+		// Build update object with only provided fields
+		const updateData: any = {};
+
+		if (body.nama !== undefined) updateData.nama = String(body.nama);
+		if (body.email !== undefined) updateData.email = String(body.email);
+		if (body.hp !== undefined) updateData.hp = String(body.hp);
+		if (body.qurbanItems !== undefined) updateData.qurban_items = Array.isArray(body.qurbanItems) ? body.qurbanItems : [];
+		if (body.tujuanQurban !== undefined) updateData.tujuan_qurban = String(body.tujuanQurban);
+		if (body.lembaga !== undefined) updateData.lembaga = String(body.lembaga);
+		if (body.buktiBayarUrl !== undefined) updateData.bukti_bayar_url = body.buktiBayarUrl ? String(body.buktiBayarUrl) : null;
+
+		if (Object.keys(updateData).length === 0) {
+			return new Response(
+				JSON.stringify({ error: 'Tidak ada field yang akan diupdate' }),
+				{ status: 400, headers: corsHeaders }
+			);
+		}
+
+		const { error } = await supabaseServer
+			.from(TABLE_NAME)
+			.update(updateData)
+			.eq('id', id);
+
+		if (error) {
+			return new Response(
+				JSON.stringify({ error: error.message || 'Database error' }),
+				{ status: 500, headers: corsHeaders }
+			);
+		}
+
+		return new Response(
+			JSON.stringify({ success: true, message: 'Data berhasil diupdate' }),
+			{ status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+		);
+	} catch (err: any) {
+		return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+			status: 400,
+			headers: corsHeaders,
+		});
+	}
+}
+
+export async function DELETE(req: Request) {
+	try {
+		const { searchParams } = new URL(req.url);
+		const id = searchParams.get('id');
+
+		if (!id) {
+			return new Response(
+				JSON.stringify({ error: 'ID tidak ditemukan dalam query parameter' }),
+				{ status: 400, headers: corsHeaders }
+			);
+		}
+
+		const { error } = await supabaseServer.from(TABLE_NAME).delete().eq('id', id);
+
+		if (error) {
+			return new Response(
+				JSON.stringify({ error: error.message || 'Database error' }),
+				{ status: 500, headers: corsHeaders }
+			);
+		}
+
+		return new Response(
+			JSON.stringify({ success: true, message: 'Data berhasil dihapus' }),
+			{ status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+		);
+	} catch (err: any) {
 		return new Response(JSON.stringify({ error: 'Invalid request body' }), {
 			status: 400,
 			headers: corsHeaders,

@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
 		if (file.size > MAX_FILE_SIZE) {
 			return NextResponse.json(
-				{ error: 'Ukuran bukti bayar maksimal 2MB' },
+				{ error: 'Ukuran bukti bayar maksimal 1MB' },
 				{ status: 400 }
 			);
 		}

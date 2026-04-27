@@ -13,12 +13,16 @@ import { ModalPreview } from '../ModalPreview/ModalPreview';
 type PendaftaranQurban = {
 	id: string;
 	nama: string;
+	email: string;
 	hp: string;
-	hewan: 'Kambing' | 'Sapi';
-	qty: number;
-	atas_nama: string;
+	qurban_items: Array<{
+		hewan: 'Kambing' | 'Sapi';
+		qty: string;
+		atasNama: string;
+		atasNamaList: string[];
+	}>;
 	tujuan_qurban: string;
-	lembaga: 'Baznas' | 'Lazismu';
+	lembaga: string;
 	bukti_bayar_url: string | null;
 	created_at: string;
 };
@@ -98,20 +102,41 @@ export default function ListPendaftaranQurban() {
 			header: 'Nama',
 		},
 		{
+			accessorKey: 'email',
+			header: 'Email',
+		},
+		{
 			accessorKey: 'hp',
 			header: 'Nomor HP',
 		},
 		{
-			accessorKey: 'hewan',
-			header: 'Hewan',
-		},
-		{
-			accessorKey: 'qty',
-			header: 'Qty',
-		},
-		{
-			accessorKey: 'atas_nama',
-			header: 'Atas Nama',
+			id: 'qurban_items',
+			header: 'Qurban Items',
+			cell: ({ row }) => {
+				const items = row.original.qurban_items || [];
+				if (items.length === 0) return <span>-</span>;
+				const visibleItems = items.slice(0, 3);
+				const hasMore = items.length > 3;
+				return (
+					<div className="min-w-[280px] text-sm space-y-2 py-1">
+						{visibleItems.map((item, index) => (
+							<div key={index} className="border border-blue-200 rounded-md px-3 py-2 bg-blue-50 space-y-1">
+								<div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+									Hewan Qurban {index + 1}
+								</div>
+								<div><span className="font-medium">Hewan</span>: {item.hewan || '-'}</div>
+								<div><span className="font-medium">Qty</span>: {item.qty || '-'}</div>
+								<div><span className="font-medium">Atas Nama</span>: {Array.isArray(item.atasNamaList) && item.atasNamaList.length > 0 ? item.atasNamaList.join(', ') : item.atasNama || '-'}</div>
+							</div>
+						))}
+						{hasMore && (
+							<div className="text-muted-foreground italic text-xs text-center pt-1">
+								+{items.length - 3} item lainnya... (lihat detail)
+							</div>
+						)}
+					</div>
+				);
+			},
 		},
 		{
 			accessorKey: 'tujuan_qurban',
@@ -165,20 +190,32 @@ export default function ListPendaftaranQurban() {
 						<div>: {selectedItem?.nama}</div>
 					</div>
 					<div className="flex flex-row">
+						<div className="font-semibold w-[30%]">Email</div>
+						<div>: {selectedItem?.email}</div>
+					</div>
+					<div className="flex flex-row">
 						<div className="font-semibold w-[30%]">Nomor HP</div>
 						<div>: {selectedItem?.hp}</div>
 					</div>
 					<div className="flex flex-row">
-						<div className="font-semibold w-[30%]">Hewan</div>
-						<div>: {selectedItem?.hewan}</div>
-					</div>
-					<div className="flex flex-row">
-						<div className="font-semibold w-[30%]">Qty</div>
-						<div>: {selectedItem?.qty}</div>
-					</div>
-					<div className="flex flex-row">
-						<div className="font-semibold w-[30%]">Atas Nama</div>
-						<div>: {selectedItem?.atas_nama}</div>
+						<div className="font-semibold w-[30%]">Qurban Items</div>
+						<div>
+							: {selectedItem?.qurban_items?.length ? (
+								<div className="space-y-2">
+									{selectedItem.qurban_items.map((item, index) => (
+										<div key={`${item.hewan}-${item.atasNama}-${index}`}>
+											<div>{item.hewan} - Qty {item.qty}</div>
+											<div>Atas Nama: {item.atasNama}</div>
+											<div>
+												List: {Array.isArray(item.atasNamaList) ? item.atasNamaList.join(', ') : '-'}
+											</div>
+										</div>
+									))}
+								</div>
+							) : (
+								<span>-</span>
+							)}
+						</div>
 					</div>
 					<div className="flex flex-row">
 						<div className="font-semibold w-[30%]">Tujuan Qurban</div>
