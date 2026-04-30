@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
 		if (!ALLOWED_BUKTI_BAYAR_TYPES.includes(file.type as (typeof ALLOWED_BUKTI_BAYAR_TYPES)[number])) {
 			return NextResponse.json(
-				{ error: 'Bukti bayar harus JPG, PNG, WEBP, atau PDF' },
+				   { error: 'Bukti bayar harus JPG, JPEG, PNG, WEBP, atau PDF' },
 				{ status: 400 }
 			);
 		}

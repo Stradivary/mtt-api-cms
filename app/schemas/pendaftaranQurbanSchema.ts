@@ -7,6 +7,8 @@ export const ALLOWED_BUKTI_BAYAR_TYPES = [
 	'image/png',
 	'image/webp',
 	'application/pdf',
+	'image/jpg', // kadang browser mengirim image/jpg
+	'image/JPEG', // antisipasi case sensitive
 ] as const;
 
 export const PROVINSI_INDONESIA = [
