@@ -28,10 +28,14 @@ type PendaftaranQurban = {
 };
 
 export default function ListPendaftaranQurban() {
+	const PAGE_SIZE = 10;
+
 	const [data, setData] = useState<PendaftaranQurban[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [search, setSearch] = useState('');
+	const [page, setPage] = useState(1);
+	const [totalItems, setTotalItems] = useState(0);
 	const [openPreview, setOpenPreview] = useState(false);
 	const [selectedItem, setSelectedItem] = useState<PendaftaranQurban | null>(null);
 	const [loadingDownload, setLoadingDownload] = useState(false);
@@ -41,6 +45,8 @@ export default function ListPendaftaranQurban() {
 		try {
 			const params = new URLSearchParams();
 			if (search) params.append('search', search);
+			params.append('page', String(page));
+			params.append('limit', String(PAGE_SIZE));
 
 			const res = await fetch(`/api/pendaftaran-qurban?${params.toString()}`, {
 				cache: 'no-store',
@@ -50,6 +56,9 @@ export default function ListPendaftaranQurban() {
 			if (!Array.isArray(json?.data)) throw new Error('Invalid response format');
 
 			setData(json.data);
+			const parsedTotal = Number(json?.total);
+			const totalFromApi = Number.isFinite(parsedTotal) && parsedTotal >= 0 ? parsedTotal : 0;
+			setTotalItems(Math.max(totalFromApi, (page - 1) * PAGE_SIZE + json.data.length));
 		} catch {
 			toast.error('Gagal mengambil data pendaftaran kurban');
 		} finally {
@@ -59,7 +68,7 @@ export default function ListPendaftaranQurban() {
 
 	useEffect(() => {
 		fetchPendaftaranQurban();
-	}, [search]);
+	}, [search, page]);
 
 	const handleDownload = async () => {
 		setLoadingDownload(true);
@@ -259,11 +268,13 @@ export default function ListPendaftaranQurban() {
 						setSearchQuery(value);
 						if (value.length > 3) {
 							setSearch(value);
+							setPage(1);
 						}
 					}}
 					onKeyDown={(e) => {
 						if (e.key === 'Enter') {
 							setSearch(searchQuery);
+							setPage(1);
 						}
 					}}
 				/>
@@ -282,6 +293,10 @@ export default function ListPendaftaranQurban() {
 				data={data}
 				columns={columns}
 				loading={loading}
+				pageIndex={page - 1}
+				pageSize={PAGE_SIZE}
+				totalItems={totalItems}
+				onPageChange={(nextPageIndex) => setPage(nextPageIndex + 1)}
 			/>
 		</div>
 	);

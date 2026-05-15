@@ -38,7 +38,22 @@ export async function GET(req: Request) {
 		});
 	}
 
-	return new Response(JSON.stringify({ data, total: count }), {
+	let total = count;
+
+	if (typeof total !== 'number') {
+		let countQuery = supabaseServer.from(TABLE_NAME).select('id', { count: 'exact', head: true });
+
+		if (search) {
+			countQuery = countQuery.or(
+				`nama.ilike.%${search}%,email.ilike.%${search}%,hp.ilike.%${search}%,tujuan_qurban.ilike.%${search}%,lembaga.ilike.%${search}%`
+			);
+		}
+
+		const { count: fallbackCount } = await countQuery;
+		total = typeof fallbackCount === 'number' ? fallbackCount : 0;
+	}
+
+	return new Response(JSON.stringify({ data, total }), {
 		status: 200,
 		headers: {
 			...corsHeaders,
